@@ -1,0 +1,3 @@
+{
+    "iotHubConnString": "HostName=voting-app-iot-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=KHqFeK8cQ0EMV+UwedXrdh8055dTsDsTi5HLnt1NLY0="
+} 
