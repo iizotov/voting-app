@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-	"postinstall": "bower install"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -21,17 +17,17 @@
 	"azure-event-hubs": ">=0.0.3",
     "bluebird": "^3.4.1",
 	"fingerprintjs2": "latest",
-	"azure-iot-device-mqtt": "latest"
+	"azure-iot-device-mqtt": "latest",
+	"bower": "latest"
   },
   "devDependencies": {
-    "gulp": "^3.9.1"
+    "gulp": "^3.9.1",
+	"jshint": "^2.9.1"
   },
   
   "scripts": {
     "lint": "jshint --show-non-errors .",
-    "test": "npm -s run lint"
-  },
-  "devDependencies": {
-    "jshint": "^2.9.1"
+    "test": "npm -s run lint",
+	"postinstall": "bower install"
   }
 }
