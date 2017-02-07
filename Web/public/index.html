@@ -72,7 +72,15 @@
                 $scope.temperatures = [];
             
                 $scope.vote = function(value) {
-                    $http.post('/api/command/', {command: value, devicehash: info.fingerprint})
+                    if(!info.devicekey) { 
+						$http.post('/api/getDevice', {devicehash: info.fingerprint})
+						.then(function(data) {
+							console.log(data);
+							info.devicekey = data.data;
+						})
+					}
+					
+					$http.post('/api/vote/', {command: value, devicehash: info.fingerprint, devicekey: info.devicekey})
 					.then(function(data) {
 						console.log(data); 
 					})					
