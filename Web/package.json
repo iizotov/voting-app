@@ -19,7 +19,8 @@
 	"fingerprintjs2": "latest",
 	"azure-iot-device-mqtt": "latest",
 	"bower": "latest",
-	"socket.io": "latest"
+	"socket.io": "latest",
+	"random-word": "latest"
   },
   "devDependencies": {
     "gulp": "^3.9.1",

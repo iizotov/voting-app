@@ -1,11 +1,16 @@
 'use strict';
 
+require('events').EventEmitter.defaultMaxListeners = 0;
+
 var promise = require('bluebird');
+
+const randomWord = require('random-word');
 
 var express = require('express');
 var bodyParser = require('body-parser');
 
 var iothub = require('azure-iothub');
+var Client = require('azure-iothub').Client;
 
 var nconf = require('nconf');
 var iotHubConnString = '';
@@ -18,6 +23,7 @@ if(process.env.IoTHubConnectionString) {
 	iotHubConnString = nconf.get('iotHubConnString');
 }
 var registry = iothub.Registry.fromConnectionString(iotHubConnString);
+var serviceClient = Client.fromConnectionString(iotHubConnString);
 
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
 var Message = require('azure-iot-device').Message;
@@ -36,7 +42,49 @@ var completedCallback = function(err, res) {
 };
 
 
+app.post('/api/admin', function(req, res) {
+    console.log('admin command received: ' + req.body.command);
+	console.log('**listing devices...');
+	registry.list(function (err, deviceList) {
+		
+			
+			serviceClient.open(function (err) {
+				
+				if (err) {
+					console.error('Could not connect: ' + err.message);
+				} else {
+					deviceList.forEach(function (device) {
+						var text = '';
+						var key = device.authentication ? device.authentication.symmetricKey.primaryKey : '<no primary key>';
+						console.log(device.deviceId + ': ' + key);
+						var targetDevice = device.deviceId;
+						//console.log('Service client connected');
+						//serviceClient.getFeedbackReceiver(receiveFeedback);
+						if(req.body.command == 'colour') {
+							text = '#'+Math.floor(Math.random()*16777215).toString(16);
+						} 
+						else if (req.body.command == 'alert') {
+							text = '!' + randomWord();
+						}
+						else if (req.body.command == 'message') {
+							text = randomWord();
+						}
+						else if (req.body.command == 'delete') {
+							//no implemetation
+						}
+						var message = new Message(text);
+						message.ack = 'positive';
+						message.messageId = "id";
+						console.log('Sending message: ' + message.getData());
+						serviceClient.send(targetDevice, message, printResultFor('send'));
+					});
+				}
+			});
 
+			
+
+	});
+});
 
 
 app.post('/api/getDevice', function(req, res) {
@@ -91,6 +139,8 @@ app.post('/api/vote', function(req, res) {
 	} else {
 		sendMessage('', '', res, req.body.devicehash, req.body.devicekey); 	
 	}
+	
+	
 	 
 
 	function sendMessage(err, deviceInfo, res, deviceId, deviceAccessKey) {
@@ -112,6 +162,14 @@ app.post('/api/vote', function(req, res) {
 		console.log("Sending message: " + message.getData());
 		client.sendEvent(message, printResultFor('send'));
 
+		//var connectionString = 'HostName=' + hostName + ';DeviceId=' + req.body.devicehash + ';SharedAccessKey=' + deviceInfo.authentication.symmetricKey.primaryKey;
+		//var client = clientFromConnectionString(connectionString);
+		client.on('message', function (msg) {
+			io.emit(req.body.devicehash, "" + msg.data);
+			console.log('Id: ' + msg.messageId + ' Body: ' + msg.data);
+		client.complete(msg, printResultFor('completed'));
+	});
+		
 	 }
 	//need to create device identity here
 	//console.log('Sending message: ' + data);
@@ -132,6 +190,14 @@ function printResultFor(op) {
             }
         };
     };
+	
+function receiveFeedback(err, receiver){
+   receiver.on('message', function (msg) {
+     console.log('Feedback message:')
+     console.log(msg.getData().toString('utf-8'));
+   });
+ };
+ 
 
 const server = app.listen(port, function() {
     console.log('app running on port ' + port);

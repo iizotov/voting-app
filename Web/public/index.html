@@ -103,11 +103,9 @@
 					$http.post('/api/vote/', {vote: value, devicehash: info.fingerprint, devicekey: info.devicekey})
 					.then(function(data) {
 						console.log(data); 
-					})
+					});
+					
                 }
-				
-				
-
             
             });
         })();
