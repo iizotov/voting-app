@@ -67,45 +67,47 @@
 	(function() {
             'use strict';
 			var info = {};
-			var socket = io();
-
             angular.module('app', []).controller('indexController', function($scope, $http) {
 			
 				new Fingerprint2().get(function(result, components) {
 					info.fingerprint = result;
 					document.getElementById('device-id').innerHTML = "Device ID: " + result;
-					
-					socket.on(info.fingerprint, function(data){
-						if(data.startsWith('#')) {
-							document.body.style.backgroundColor = data;
-						} else if (data.startsWith('!')) {
-							window.alert(data);
-						} else {
-							document.getElementById('C2D').innerHTML = data;
-						}
-						console.log("C2D message received: " + data);
-
-					});
-					
-					if(!info.devicekey) { 
-						$http.post('/api/getDevice', {devicehash: info.fingerprint})
-						.then(function(data) {
-							console.log(data);
-							info.devicekey = data.data;
-						})
-					}
+					$http.post('/api/getDevice', {devicehash: info.fingerprint})
+					.then(function(data) {
+						console.log(data);
+						info.devicekey = data.data;
+					})
 				});
-            
-                $scope.latest_alerts = [];
-                $scope.temperatures = [];
-            
+				
                 $scope.vote = function(value) {
 					$http.post('/api/vote/', {vote: value, devicehash: info.fingerprint, devicekey: info.devicekey})
 					.then(function(data) {
 						console.log(data); 
 					});
-					
-                }
+                };
+				
+				getMessages();
+				setInterval(function(){ getMessages() }, 2000);
+				
+				function getMessages() {
+					if(!info.fingerprint || !info.devicekey) {
+						return;
+					}
+					$http.post('/api/c2d/', {devicehash: info.fingerprint, devicekey: info.devicekey})
+					.then(function(data) {
+						if(data.data) {
+							console.log("C2D message received: " + data.data);
+		
+							if(data.data.startsWith('#')) {
+								document.body.style.backgroundColor = data.data;
+							} else if (data.data.startsWith('!')) {
+								window.alert(data.data);
+							} else if (data.data) {
+								document.getElementById('C2D').innerHTML = data.data;
+							}
+						}
+					});
+				}
             
             });
         })();

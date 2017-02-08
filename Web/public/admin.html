@@ -50,8 +50,10 @@
 	<div>
 		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-danger" ng-click="c2d('colour')">Colour</button></p>
 		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-danger" ng-click="c2d('alert')">Alert</button></p>
-		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-danger" ng-click="c2d('message')">Message</button></p>
-		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-danger" ng-click="c2d('delete')">Delete All Devices</button></p>
+		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-danger" ng-click="c2d('message')">Message</button></p>	
+		<p><label for="usr">Enter Device Mask (min 3 chars):</label>
+		<input type="text" class="form-control" id="deviceMask" ng-model="deviceMask" name="deviceMask" ng-required="true" ng-minlength="3"></p>
+		
 	</div>
 
 
@@ -63,9 +65,12 @@
 
             angular.module('app', []).controller('indexController', function($scope, $http) {
 
-
                 $scope.c2d = function(value) {
-					$http.post('/api/admin/', {command: value});
+					if(!$scope.deviceMask) {
+						window.alert('Device Mask should be at least 3 chars long');
+						return;
+					}
+					$http.post('/api/admin/', {command: value, deviceMask: $scope.deviceMask});
                 }
 				
 				

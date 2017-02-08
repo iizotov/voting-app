@@ -2,8 +2,6 @@
 
 require('events').EventEmitter.defaultMaxListeners = 0;
 
-var promise = require('bluebird');
-
 const randomWord = require('random-word');
 
 var express = require('express');
@@ -26,27 +24,23 @@ var registry = iothub.Registry.fromConnectionString(iotHubConnString);
 var serviceClient = Client.fromConnectionString(iotHubConnString);
 
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
-var Message = require('azure-iot-device').Message;
 
 var hostName = require('azure-iothub').ConnectionString.parse(iotHubConnString).HostName;
 
+var lastMessage = {};
 var app = express();
 var port = process.env.PORT || 1337;
 app.use(express.static('public'));
 app.use(express.static('bower_components'));
 app.use(bodyParser.json());
 
-var completedCallback = function(err, res) {
-    if (err) { console.log(err); }
-    else { console.log(res); }
-};
 
 
 app.post('/api/admin', function(req, res) {
-    console.log('admin command received: ' + req.body.command);
-	console.log('**listing devices...');
+    console.log('admin command received: ' + req.body.command + ',' + req.body.deviceMask);
+	console.log('**matching devices...');
+	res.end();
 	registry.list(function (err, deviceList) {
-		
 			
 			serviceClient.open(function (err) {
 				
@@ -54,12 +48,14 @@ app.post('/api/admin', function(req, res) {
 					console.error('Could not connect: ' + err.message);
 				} else {
 					deviceList.forEach(function (device) {
+						if(!req.body.deviceMask || device.deviceId.search(req.body.deviceMask) < 0) {
+							return;
+						}
 						var text = '';
 						var key = device.authentication ? device.authentication.symmetricKey.primaryKey : '<no primary key>';
 						console.log(device.deviceId + ': ' + key);
 						var targetDevice = device.deviceId;
-						//console.log('Service client connected');
-						//serviceClient.getFeedbackReceiver(receiveFeedback);
+
 						if(req.body.command == 'colour') {
 							text = '#'+Math.floor(Math.random()*16777215).toString(16);
 						} 
@@ -91,94 +87,53 @@ app.post('/api/getDevice', function(req, res) {
     console.log('getDevice command received from: ' + req.body.devicehash);
 	var device = new iothub.Device(null);
 	device.deviceId = req.body.devicehash;
-	registry.create(device, function(err, deviceInfo, res2) {
+	registry.create(device, function(err, deviceInfo) {
 		if (err) {
-			registry.get(device.deviceId, function(err, deviceInfo, res3) {
-				res.end(deviceInfo.authentication.symmetricKey.primaryKey);
-				console.log('getting identity');
-				var connectionString = 'HostName=' + hostName + ';DeviceId=' + req.body.devicehash + ';SharedAccessKey=' + deviceInfo.authentication.symmetricKey.primaryKey;
-				var client = clientFromConnectionString(connectionString);
-				client.on('message', function (msg) {
-					io.emit(req.body.devicehash, "" + msg.data);
-					console.log('Id: ' + msg.messageId + ' Body: ' + msg.data);
-					client.complete(msg, printResultFor('completed'));
-				});
+			registry.get(device.deviceId, function(err, deviceInfo) {
+				console.log('retrieving existing identity');
+				res.end(deviceInfo.authentication.symmetricKey.primaryKey, connectC2D(req.body.devicehash, deviceInfo.authentication.symmetricKey.primaryKey));
 			});
 
-			
 		} else {
-			console.log('getting identity');
+			console.log('creating new identity');
+			res.end(deviceInfo.authentication.symmetricKey.primaryKey, connectC2D(req.body.devicehash, deviceInfo.authentication.symmetricKey.primaryKey));
 		}
-		
 
 	});
-	
-	
-
-
 });
+
+function connectC2D(id, key) {
+		var connectionString = 'HostName=' + hostName + ';DeviceId=' + id + ';SharedAccessKey=' + key;
+		var client = clientFromConnectionString(connectionString);
+
+		client.on('message', function (msg) {
+			console.log('Id: ' + msg.messageId + ' Body: ' + msg.data);
+			client.complete(msg, printResultFor('completed'));
+			lastMessage[id] = msg.data;
+			console.log('saved last message' + msg.data);
+		});
+}
 
 
 app.post('/api/vote', function(req, res) {
     console.log('vote command received from: ' + req.body.vote + ',' + req.body.devicehash + ',' + req.body.devicekey);
+	var connectionString = 'HostName=' + hostName + ';DeviceId=' + req.body.devicehash + ';SharedAccessKey=' + req.body.devicekey;
+	var client = clientFromConnectionString(connectionString);
+	var message = new Message(JSON.stringify({vote: req.body.vote}));
+	console.log("Sending message: " + message.getData());
+	client.sendEvent(message, printResultFor('send'));
+    res.end();
+});
 
-	var vote = req.body.vote;
-	var deviceKey = req.body.devicekey;
-	var device = new iothub.Device(null);
-	device.deviceId = req.body.devicehash;
-
-	if(!deviceKey) {
-		registry.create(device, function(err, deviceInfo, res) {
-			if (err) {
-				registry.get(device.deviceId, sendMessage);
-			}
-			if (deviceInfo) {
-				sendMessage(err, deviceInfo, res, '', '');	
-			}
-		})
+app.post('/api/c2d', function(req, res) {
+	if(lastMessage[req.body.devicehash]) {
+		res.end(lastMessage[req.body.devicehash]);
+		lastMessage[req.body.devicehash] = null;
 	} else {
-		sendMessage('', '', res, req.body.devicehash, req.body.devicekey); 	
+		//console.log('no new messages');
+		res.end();
 	}
 	
-	
-	 
-
-	function sendMessage(err, deviceInfo, res, deviceId, deviceAccessKey) {
-		var connectionString = '';
-		if (deviceId && deviceAccessKey) {
-			connectionString = 'HostName=' + hostName + ';DeviceId=' + deviceId + ';SharedAccessKey=' + deviceAccessKey;
-			console.log('Device ID: ' + deviceId);
-			console.log('Device key - cached: ' + deviceAccessKey);
-		}
-		else if (deviceInfo) {
-			console.log('Device ID: ' + deviceInfo.deviceId);
-			console.log('Device key - retrieved: ' + deviceInfo.authentication.symmetricKey.primaryKey);
-			connectionString = 'HostName=' + hostName + ';DeviceId=' + deviceInfo.deviceId + ';SharedAccessKey=' + deviceInfo.authentication.symmetricKey.primaryKey;
-			deviceKey = deviceInfo.authentication.symmetricKey.primaryKey;
-		}
-		console.log(connectionString);
-		var client = clientFromConnectionString(connectionString);
-		var message = new Message("{'vote':" + vote + '}');
-		console.log("Sending message: " + message.getData());
-		client.sendEvent(message, printResultFor('send'));
-
-		//var connectionString = 'HostName=' + hostName + ';DeviceId=' + req.body.devicehash + ';SharedAccessKey=' + deviceInfo.authentication.symmetricKey.primaryKey;
-		//var client = clientFromConnectionString(connectionString);
-		client.on('message', function (msg) {
-			io.emit(req.body.devicehash, "" + msg.data);
-			console.log('Id: ' + msg.messageId + ' Body: ' + msg.data);
-		client.complete(msg, printResultFor('completed'));
-	});
-		
-	 }
-	//need to create device identity here
-	//console.log('Sending message: ' + data);
-	//iotHubClient.send(deviceId, message, printResultFor('send'));
-    
-    // Helper function to print results in the console
-    
-	
-    res.end();
 });
 
 function printResultFor(op) {
@@ -202,5 +157,3 @@ function receiveFeedback(err, receiver){
 const server = app.listen(port, function() {
     console.log('app running on port ' + port);
 });
-
-const io = require('socket.io')(server);
