@@ -20,7 +20,8 @@
 	"azure-iot-device-mqtt": "latest",
 	"bower": "latest",
 	"socket.io": "latest",
-	"random-word": "latest"
+	"random-word": "latest",
+	"iothub-explorer": "latest"
   },
   "devDependencies": {
     "gulp": "^3.9.1",
