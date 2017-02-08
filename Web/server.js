@@ -8,9 +8,15 @@ var bodyParser = require('body-parser');
 var iothub = require('azure-iothub');
 
 var nconf = require('nconf');
+var iotHubConnString = '';
 
-nconf.argv().env().file('./config.json');
-var iotHubConnString = nconf.get('iotHubConnString');
+if(process.env.IoTHubConnectionString) {
+	nconf.argv().env().file('./config.json');
+	iotHubConnString = process.env.IoTHubConnectionString;
+} else {
+	nconf.argv().env().file('./config.json');
+	iotHubConnString = nconf.get('iotHubConnString');
+}
 var registry = iothub.Registry.fromConnectionString(iotHubConnString);
 
 var clientFromConnectionString = require('azure-iot-device-mqtt').clientFromConnectionString;
