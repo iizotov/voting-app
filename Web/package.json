@@ -18,7 +18,8 @@
     "bluebird": "^3.4.1",
 	"fingerprintjs2": "latest",
 	"azure-iot-device-mqtt": "latest",
-	"bower": "latest"
+	"bower": "latest",
+	"socket.io": "latest"
   },
   "devDependencies": {
     "gulp": "^3.9.1",

@@ -15,6 +15,7 @@
   "dependencies": {
     "angular": "^1.5.2",
     "bootstrap": "^3.3.6",
-	"fingerprintjs2": "latest"
+	"fingerprintjs2": "latest",
+	"socket.io-client": "latest"
   }
 }

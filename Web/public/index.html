@@ -54,37 +54,60 @@
 		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-success" ng-click="vote('4')">4. Allright!</button></p>
 		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-success" ng-click="vote('5')">5. Superb!</button></p>
 	</div>
+	<div>
+		<h2 id="C2D"></h2>
+		<p id="device-id"></p>
+	</div>
 
     <script src="/angular/angular.min.js"></script>
 	<script src="/fingerprintjs2/fingerprint2.js"></script>
+	<script src="/socket.io-client/dist/socket.io.min.js"></script>
+	
     <script>
 	(function() {
             'use strict';
 			var info = {};
-			
-			new Fingerprint2().get(function(result, components) {
-				info.fingerprint = result;
-			});
-            
+			var socket = io();
+
             angular.module('app', []).controller('indexController', function($scope, $http) {
-            
-                $scope.latest_alerts = [];
-                $scope.temperatures = [];
-            
-                $scope.vote = function(value) {
-                    if(!info.devicekey) { 
+			
+				new Fingerprint2().get(function(result, components) {
+					info.fingerprint = result;
+					document.getElementById('device-id').innerHTML = "Device ID: " + result;
+					
+					socket.on(info.fingerprint, function(data){
+						if(data.startsWith('#')) {
+							document.body.style.backgroundColor = data;
+						} else if (data.startsWith('!')) {
+							window.alert(data);
+						} else {
+							document.getElementById('C2D').innerHTML = data;
+						}
+						console.log("C2D message received: " + data);
+
+					});
+					
+					if(!info.devicekey) { 
 						$http.post('/api/getDevice', {devicehash: info.fingerprint})
 						.then(function(data) {
 							console.log(data);
 							info.devicekey = data.data;
 						})
 					}
-					
-					$http.post('/api/vote/', {command: value, devicehash: info.fingerprint, devicekey: info.devicekey})
+				});
+            
+                $scope.latest_alerts = [];
+                $scope.temperatures = [];
+            
+                $scope.vote = function(value) {
+					$http.post('/api/vote/', {vote: value, devicehash: info.fingerprint, devicekey: info.devicekey})
 					.then(function(data) {
 						console.log(data); 
-					})					
-                };
+					})
+                }
+				
+				
+
             
             });
         })();

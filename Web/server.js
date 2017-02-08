@@ -7,7 +7,6 @@ var bodyParser = require('body-parser');
 
 var iothub = require('azure-iothub');
 
-
 var nconf = require('nconf');
 
 nconf.argv().env().file('./config.json');
@@ -30,7 +29,9 @@ var completedCallback = function(err, res) {
     else { console.log(res); }
 };
 
-var res;
+
+
+
 
 app.post('/api/getDevice', function(req, res) {
     console.log('getDevice command received from: ' + req.body.devicehash);
@@ -40,32 +41,34 @@ app.post('/api/getDevice', function(req, res) {
 		if (err) {
 			registry.get(device.deviceId, function(err, deviceInfo, res3) {
 				res.end(deviceInfo.authentication.symmetricKey.primaryKey);
+				console.log('getting identity');
+				var connectionString = 'HostName=' + hostName + ';DeviceId=' + req.body.devicehash + ';SharedAccessKey=' + deviceInfo.authentication.symmetricKey.primaryKey;
+				var client = clientFromConnectionString(connectionString);
+				client.on('message', function (msg) {
+					io.emit(req.body.devicehash, "" + msg.data);
+					console.log('Id: ' + msg.messageId + ' Body: ' + msg.data);
+					client.complete(msg, printResultFor('completed'));
+				});
 			});
+
+			
+		} else {
 			console.log('getting identity');
 		}
-	})
-});
-
-app.post('/api/getMessages', function(req, res) {
-    console.log('getMessages command received from: ' + req.body.devicehash + ',' + req.body.devicekey);
-	var deviceKey = req.body.devicekey;
-	var device = new iothub.Device(null);
-	device.deviceId = req.body.devicehash;
-
 		
-	// Code goes here
-	
-	client.on('message', function (msg) {
-		console.log('Id: ' + msg.messageId + ' Body: ' + msg.data);
-		client.complete(msg, printResultFor('completed'));
+
 	});
 	
+	
+
+
 });
 
-app.post('/api/vote', function(req, res) {
-    console.log('vote command received from: ' + req.body.command + ',' + req.body.devicehash + ',' + req.body.devicekey);
 
-	var vote = req.body.command;
+app.post('/api/vote', function(req, res) {
+    console.log('vote command received from: ' + req.body.vote + ',' + req.body.devicehash + ',' + req.body.devicekey);
+
+	var vote = req.body.vote;
 	var deviceKey = req.body.devicekey;
 	var device = new iothub.Device(null);
 	device.deviceId = req.body.devicehash;
@@ -109,7 +112,12 @@ app.post('/api/vote', function(req, res) {
 	//iotHubClient.send(deviceId, message, printResultFor('send'));
     
     // Helper function to print results in the console
-    function printResultFor(op) {
+    
+	
+    res.end();
+});
+
+function printResultFor(op) {
         return function printResult(err, res) {
             if (err) {
                 console.log(op + ' error: ' + err.toString());
@@ -117,11 +125,10 @@ app.post('/api/vote', function(req, res) {
                 console.log(op + ' status: ' + res.constructor.name);
             }
         };
-    }
-	
-    res.end();
+    };
+
+const server = app.listen(port, function() {
+    console.log('app running on port ' + port);
 });
 
-app.listen(port, function() {
-    console.log('app running on http://localhost:' + port);
-});
+const io = require('socket.io')(server);
