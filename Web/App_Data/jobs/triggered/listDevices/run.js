@@ -1,6 +1,6 @@
 var iotHubConnString;
 var nconf = require('nconf');
-var Client = require('azure-iothub').Client;
+var iothub = require('azure-iothub');
 
 if(process.env.IoTHubConnectionString) {
 	nconf.argv().env().file('./config.json');
@@ -11,13 +11,12 @@ if(process.env.IoTHubConnectionString) {
 }
 
 console.log(iotHubConnString);
-var serviceClient = Client.fromConnectionString(iotHubConnString);
+
 var registry = iothub.Registry.fromConnectionString(iotHubConnString);
 
 
 console.log('**listing devices...');
 registry.list(function (err, deviceList) {
-serviceClient.open(function (err) {	
 	if (err) {
 		console.error('Could not connect: ' + err.message);
 	} else {
@@ -26,7 +25,6 @@ serviceClient.open(function (err) {
 			console.log(device.deviceId + ': ' + key);
 		});
 	}
-});
 });
 
 
