@@ -93,39 +93,41 @@ app.post('/api/getDevice', function(req, res) {
 		if (err) {
 			registry.get(device.deviceId, function(err, deviceInfo) {
 				console.log('retrieving existing identity');
-				res.end(deviceInfo.authentication.symmetricKey.primaryKey, connectC2D(req.body.devicehash, deviceInfo.authentication.symmetricKey.primaryKey));
+				res.end(deviceInfo.authentication.symmetricKey.primaryKey, clientConnect(req.body.devicehash, deviceInfo.authentication.symmetricKey.primaryKey));
 			});
 
 		} else {
 			console.log('creating new identity');
-			res.end(deviceInfo.authentication.symmetricKey.primaryKey, connectC2D(req.body.devicehash, deviceInfo.authentication.symmetricKey.primaryKey));
+			res.end(deviceInfo.authentication.symmetricKey.primaryKey, clientConnect(req.body.devicehash, deviceInfo.authentication.symmetricKey.primaryKey));
 		}
 
 	});
 });
 
-function connectC2D(id, key) {
+function clientConnect(id, key) {
 		var connectionString = 'HostName=' + hostName + ';DeviceId=' + id + ';SharedAccessKey=' + key;
 		var client = clientFromConnectionString(connectionString);
+		
+		var connectCallback = function () { 
+			client.on('message', function (msg) { 
+				console.log('Id: ' + msg.messageId + ' Body: ' + msg.data);
+				client.complete(msg, printResultFor('completed'));
+				lastMessage[id] = msg.data;
+				console.log('saved last message' + msg.data);
+			});
+			app.post('/api/vote', function(req, res) {
+				console.log('vote command received from: ' + req.body.vote + ',' + req.body.devicehash + ',' + req.body.devicekey);
+				var message = new Message(JSON.stringify({vote: req.body.vote}));
+				console.log("Sending message: " + message.getData());
+				client.sendEvent(message, printResultFor('send'));
+				res.end();
+			});
+		};
+		client.open(connectCallback);
+};
 
-		client.on('message', function (msg) {
-			console.log('Id: ' + msg.messageId + ' Body: ' + msg.data);
-			client.complete(msg, printResultFor('completed'));
-			lastMessage[id] = msg.data;
-			console.log('saved last message' + msg.data);
-		});
-}
 
 
-app.post('/api/vote', function(req, res) {
-    console.log('vote command received from: ' + req.body.vote + ',' + req.body.devicehash + ',' + req.body.devicekey);
-	var connectionString = 'HostName=' + hostName + ';DeviceId=' + req.body.devicehash + ';SharedAccessKey=' + req.body.devicekey;
-	var client = clientFromConnectionString(connectionString);
-	var message = new Message(JSON.stringify({vote: req.body.vote}));
-	console.log("Sending message: " + message.getData());
-	client.sendEvent(message, printResultFor('send'));
-    res.end();
-});
 
 app.post('/api/c2d', function(req, res) {
 	if(lastMessage[req.body.devicehash]) {

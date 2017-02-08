@@ -90,6 +90,7 @@
 				setInterval(function(){ getMessages() }, 2000);
 				
 				function getMessages() {
+					//console.log('poll');
 					if(!info.fingerprint || !info.devicekey) {
 						return;
 					}
