@@ -13,6 +13,8 @@ var Client = require('azure-iothub').Client;
 var nconf = require('nconf');
 var iotHubConnString = '';
 
+var Message = require('azure-iot-device').Message;
+
 if(process.env.IoTHubConnectionString) {
 	nconf.argv().env().file('./config.json');
 	iotHubConnString = process.env.IoTHubConnectionString;
