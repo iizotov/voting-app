@@ -21,7 +21,8 @@
 	"bower": "latest",
 	"socket.io": "latest",
 	"random-word": "latest",
-	"iothub-explorer": "latest"
+	"iothub-explorer": "latest",
+	"azure-storage": "latest"
   },
   "devDependencies": {
     "gulp": "^3.9.1",
