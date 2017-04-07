@@ -1,7 +1,7 @@
-#Architecture:
+# Architecture:
 ![Architecture](https://raw.githubusercontent.com/iizotov/voting-app/master/arch.png)
 
-#Instructions:
+# Instructions:
 0. Create an IoT Hub, Storage Account, Azure SQL DB, Doc DB, Event Hub, Azure Function, Notification Hub
 1. Edit config.json or natively deploy a Web App from GitHub, dependencies will be installed automatically, alternatively copy ./Web/ to the web app root and run:
 	npm install -g bower
