@@ -1,0 +1,10 @@
+{
+    "frameworks": {
+    ".NETFramework,Version=v4.6": {
+        "dependencies": {
+        "Microsoft.Azure.NotificationHubs": "1.0.4",
+        "Newtonsoft.Json": "9.0.1"
+        }
+    }
+    }
+}
