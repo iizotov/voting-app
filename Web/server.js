@@ -116,9 +116,11 @@ function clientConnect(id, key) {
 			});
 			app.post('/api/vote', function(req, res) {
 				console.log('vote command received from: ' + req.body.vote + ',' + req.body.devicehash + ',' + req.body.devicekey);
-				var message = new Message(JSON.stringify({vote: req.body.vote}));
+				//for load testing purposes throw in a for loop
+				var message = new Message(JSON.stringify({vote: req.body.vote, device: req.body.devicehash}));
 				console.log("Sending message: " + message.getData());
 				client.sendEvent(message, printResultFor('send'));
+			
 				res.end();
 			});
 		};

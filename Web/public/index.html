@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>VotingApp</title>
+    <title>SeismoApp</title>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -38,7 +38,7 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="#/">VotingApp</a>
+                <a class="navbar-brand" href="#/">SeismoApp</a>
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
@@ -48,11 +48,17 @@
         </div>
     </nav>
 	<div>
-		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-danger" ng-click="vote('1')">1. Boo!</button></p>
-		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-danger" ng-click="vote('2')">2. So-so!</button></p>
-		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-danger" ng-click="vote('3')">3. Okay!</button></p>
-		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-success" ng-click="vote('4')">4. Allright!</button></p>
-		<p><button type="button" class="btn btn-primary btn-lg btn-block btn-success" ng-click="vote('5')">5. Superb!</button></p>
+		<ul>
+		<li>acceleration x: <span id="accelerationX"></span> g</li>
+		<li>acceleration y: <span id="accelerationY"></span> g</li>
+		<li>acceleration z: <span id="accelerationZ"></span> g</li>
+		<li><b>acceleration total: <span id="accelerationTotal"></span> g</b></li><br><br>
+		
+		<li>rotation alpha: <span id="rotationAlpha"></span> degree</li>
+		<li>rotation beta: <span id="rotationBeta"></span> degree</li>
+		<li>rotation gamma: <span id="rotationGamma"></span> degree</li>
+	</ul>
+
 	</div>
 	<div>
 		<h2 id="C2D"></h2>
@@ -63,7 +69,32 @@
 	<script src="/fingerprintjs2/fingerprint2.js"></script>
 	<script src="/socket.io-client/dist/socket.io.min.js"></script>
 	
-    <script>
+
+	<script type="text/javascript">
+	var x = 0, y = 0, z = 0;	
+
+		if (window.DeviceMotionEvent != undefined) {
+			window.ondevicemotion = function(e) {
+
+			x = e.accelerationIncludingGravity.x.toFixed(3);
+			y = e.accelerationIncludingGravity.y.toFixed(3);
+			z = e.accelerationIncludingGravity.z.toFixed(3);
+			document.getElementById("accelerationX").innerHTML = x;
+			document.getElementById("accelerationY").innerHTML = y;
+			document.getElementById("accelerationZ").innerHTML = z;
+			document.getElementById("accelerationTotal").innerHTML = (Math.sqrt(x * x + y * y + z * z) - 9.80665).toFixed(3);
+
+			if ( e.rotationRate ) {
+				document.getElementById("rotationAlpha").innerHTML = e.rotationRate.alpha.toFixed(3);
+				document.getElementById("rotationBeta").innerHTML = e.rotationRate.beta.toFixed(3);
+				document.getElementById("rotationGamma").innerHTML = e.rotationRate.gamma.toFixed(3);
+			}
+
+			}
+			};
+
+	</script>
+	<script>
 	(function() {
             'use strict';
 			var info = {};
@@ -85,6 +116,18 @@
 						console.log(data); 
 					});
                 };
+				
+				setInterval(function() {
+					if(document.getElementById("accelerationTotal").innerHTML)
+					{
+						$http.post('/api/vote/', {vote: document.getElementById("accelerationTotal").innerHTML, devicehash: info.fingerprint, devicekey: info.devicekey})
+						.then(function(data) {
+							console.log(data); 
+						})
+					} else {
+						console.log ("Nothing to send!");
+					}
+				}, 100);
 				
 				getMessages();
 				setInterval(function(){ getMessages() }, 2000);
