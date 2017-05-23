@@ -2,17 +2,13 @@
 ![Architecture](https://raw.githubusercontent.com/iizotov/voting-app/master/arch.png)
 
 # Instructions:
-0. Create an IoT Hub, Storage Account, Azure SQL DB, Doc DB, Event Hub, Azure Function, Notification Hub
+0. Create a Web App, IoT Hub, Storage Account, Azure SQL DB, Doc DB, Event Hub, Azure Function, Notification Hub
 	- table and db structure for SQL is [located in ./SQL/](./SQL/)
-1. Edit config.json or natively deploy a Web App from GitHub, dependencies will be installed automatically, alternatively copy ./Web/ to the web app root and run:
-	npm install -g bower
-	npm install
-	bower install
-2. Configer web app parameters of use config.json instead:
-	-iotHubConnectionString
-	-storageAccount
-	-storageAccountKey
-	-container
+1. Either natively deploy a Web App from GitHub, dependencies will be installed automatically, alternatively copy ./Web/ to the web app root and run:
+	- ```npm install -g bower```
+	- ```npm install```
+	- ```bower install```
+2. Create the ```iotHubConnectionString``` web app setting with the connection string to the IoT Hub you created earlier
 3. Create an ASA job with a [script from the ./ASA/ folder](./ASA/) and add the following outputs from step 0:
 	- blobOutput: Blob Storage
 	- docDBOutput: Document DB
